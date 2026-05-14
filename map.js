@@ -45,8 +45,6 @@ map.on('load', async () => {
     source: 'cambridge_route',
     paint: bikeLaneStyle,
   });
-});
-
   // Fetch station data
   let jsonData;
   try {
@@ -60,6 +58,7 @@ map.on('load', async () => {
   console.log('Stations Array:', stations);
 
   // Draw circles for each station
+  const svg = d3.select('body').append('svg'); // Ensure SVG is defined
   const circles = svg
     .selectAll('circle')
     .data(stations)
