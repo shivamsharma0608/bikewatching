@@ -46,3 +46,42 @@ map.on('load', async () => {
     paint: bikeLaneStyle,
   });
 });
+
+  // Fetch station data
+  let jsonData;
+  try {
+    jsonData = await d3.json('https://dsc106.com/labs/lab07/data/bluebikes-stations.json');
+    console.log('Loaded JSON Data:', jsonData);
+  } catch (error) {
+    console.error('Error loading JSON:', error);
+  }
+
+  let stations = jsonData.data.stations;
+  console.log('Stations Array:', stations);
+
+  // Draw circles for each station
+  const circles = svg
+    .selectAll('circle')
+    .data(stations)
+    .enter()
+    .append('circle')
+    .attr('r', 5)
+    .attr('fill', 'steelblue')
+    .attr('stroke', 'white')
+    .attr('stroke-width', 1)
+    .attr('opacity', 0.8);
+
+  // Update positions on map move/zoom
+  function updatePositions() {
+    circles
+      .attr('cx', (d) => getCoords(d).cx)
+      .attr('cy', (d) => getCoords(d).cy);
+  }
+
+  updatePositions();
+
+  map.on('move', updatePositions);
+  map.on('zoom', updatePositions);
+  map.on('resize', updatePositions);
+  map.on('moveend', updatePositions);
+});
