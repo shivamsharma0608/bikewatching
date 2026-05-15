@@ -8,9 +8,7 @@ body {
     display: flex;
     gap: 1em;
     align-items: baseline;
-    padding: 1em;
-    max-width: 80em;
-    margin-inline: auto;
+    padding: 1em 2em;
   }
   
   header h1 {
@@ -34,19 +32,12 @@ body {
     font-style: italic;
   }
   
-  #map {
-    max-width: 80em;
-    margin-inline: auto;
-  }
-  
   .legend {
     display: flex;
     gap: 1em;
     align-items: center;
     justify-content: center;
     margin-block: 1em;
-    max-width: 80em;
-    margin-inline: auto;
     padding: 0 1em;
   }
   
