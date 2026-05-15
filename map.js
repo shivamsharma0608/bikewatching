@@ -15,10 +15,10 @@ const map = new mapboxgl.Map({
 const svg = d3.select('#map').append('svg');
 
 function getCoords(station) {
-    const point = new mapboxgl.LngLat(+station.lon, +station.lat);
-    const { x, y } = map.project(point);
-    return { cx: x, cy: y };
-  }
+  const point = new mapboxgl.LngLat(+station.lon, +station.lat);
+  const { x, y } = map.project(point);
+  return { cx: x, cy: y };
+}
 
 const bikeLaneStyle = {
   'line-color': '#32D400',
@@ -52,28 +52,65 @@ map.on('load', async () => {
   });
 
   // Fetch station data
-  let jsonData;
-  try {
-    jsonData = await d3.json('https://dsc106.com/labs/lab07/data/bluebikes-stations.json');
-    console.log('Loaded JSON Data:', jsonData);
-  } catch (error) {
-    console.error('Error loading JSON:', error);
-  }
-
+  let jsonData = await d3.json('https://dsc106.com/labs/lab07/data/bluebikes-stations.json');
   let stations = jsonData.data.stations;
-  console.log('Stations Array:', stations);
 
-  // Draw circles for each station
+  // Fetch trip data
+  const trips = await d3.csv(
+    'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv',
+    (trip) => {
+      trip.started_at = new Date(trip.started_at);
+      trip.ended_at = new Date(trip.ended_at);
+      return trip;
+    }
+  );
+
+  // Calculate arrivals and departures
+  const departures = d3.rollup(
+    trips,
+    (v) => v.length,
+    (d) => d.start_station_id,
+  );
+
+  const arrivals = d3.rollup(
+    trips,
+    (v) => v.length,
+    (d) => d.end_station_id,
+  );
+
+  // Add traffic properties to each station
+  stations = stations.map((station) => {
+    let id = station.short_name;
+    station.arrivals = arrivals.get(id) ?? 0;
+    station.departures = departures.get(id) ?? 0;
+    station.totalTraffic = station.arrivals + station.departures;
+    return station;
+  });
+
+  console.log('Stations with traffic:', stations);
+
+  // Radius scale
+  const radiusScale = d3
+    .scaleSqrt()
+    .domain([0, d3.max(stations, (d) => d.totalTraffic)])
+    .range([0, 25]);
+
+  // Draw circles
   const circles = svg
     .selectAll('circle')
     .data(stations)
     .enter()
     .append('circle')
-    .attr('r', 5)
     .attr('fill', 'steelblue')
     .attr('stroke', 'white')
     .attr('stroke-width', 1)
-    .attr('opacity', 0.8);
+    .attr('fill-opacity', 0.6)
+    .attr('r', (d) => radiusScale(d.totalTraffic))
+    .each(function (d) {
+      d3.select(this)
+        .append('title')
+        .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
+    });
 
   function updatePositions() {
     circles
