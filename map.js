@@ -12,7 +12,14 @@ const map = new mapboxgl.Map({
   maxZoom: 18,
 });
 
-// Shared style for both bike lane layers
+const svg = d3.select('#map').append('svg');
+
+function getCoords(station) {
+  const point = new mapboxgl.LngLat(+station.Long, +station.Lat);
+  const { x, y } = map.project(point);
+  return { cx: x, cy: y };
+}
+
 const bikeLaneStyle = {
   'line-color': '#32D400',
   'line-width': 5,
@@ -25,7 +32,6 @@ map.on('load', async () => {
     type: 'geojson',
     data: 'https://bostonopendata-boston.opendata.arcgis.com/datasets/boston::existing-bike-network-2022.geojson',
   });
-
   map.addLayer({
     id: 'boston-bike-lanes',
     type: 'line',
@@ -38,13 +44,13 @@ map.on('load', async () => {
     type: 'geojson',
     data: 'https://raw.githubusercontent.com/cambridgegis/cambridgegis_data/main/Recreation/Bike_Facilities/RECREATION_BikeFacilities.geojson',
   });
-
   map.addLayer({
     id: 'cambridge-bike-lanes',
     type: 'line',
     source: 'cambridge_route',
     paint: bikeLaneStyle,
   });
+
   // Fetch station data
   let jsonData;
   try {
@@ -58,7 +64,6 @@ map.on('load', async () => {
   console.log('Stations Array:', stations);
 
   // Draw circles for each station
-  const svg = d3.select('body').append('svg'); // Ensure SVG is defined
   const circles = svg
     .selectAll('circle')
     .data(stations)
@@ -70,7 +75,6 @@ map.on('load', async () => {
     .attr('stroke-width', 1)
     .attr('opacity', 0.8);
 
-  // Update positions on map move/zoom
   function updatePositions() {
     circles
       .attr('cx', (d) => getCoords(d).cx)
