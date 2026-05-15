@@ -15,10 +15,10 @@ const map = new mapboxgl.Map({
 const svg = d3.select('#map').append('svg');
 
 function getCoords(station) {
-  const point = new mapboxgl.LngLat(+station.Long, +station.Lat);
-  const { x, y } = map.project(point);
-  return { cx: x, cy: y };
-}
+    const point = new mapboxgl.LngLat(+station.lon, +station.lat);
+    const { x, y } = map.project(point);
+    return { cx: x, cy: y };
+  }
 
 const bikeLaneStyle = {
   'line-color': '#32D400',
