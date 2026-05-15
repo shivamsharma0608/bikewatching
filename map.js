@@ -106,9 +106,9 @@ map.on('load', async () => {
   let stations = computeStationTraffic(jsonData.data.stations);
 
   const radiusScale = d3
-    .scaleSqrt()
-    .domain([0, d3.max(stations, (d) => d.totalTraffic)])
-    .range([0, 25]);
+  .scaleSqrt()
+  .domain([0, d3.max(stations, (d) => d.totalTraffic)])
+  .range([0, 15]); // reduced from 25
 
   const circles = svg
     .selectAll('circle')
@@ -141,7 +141,7 @@ map.on('load', async () => {
 
   function updateScatterPlot(timeFilter) {
     const filteredStations = computeStationTraffic(stations, timeFilter);
-    timeFilter === -1 ? radiusScale.range([0, 25]) : radiusScale.range([3, 50]);
+    timeFilter === -1 ? radiusScale.range([0, 15]) : radiusScale.range([3, 30]);
     circles
       .data(filteredStations, (d) => d.short_name)
       .join('circle')
