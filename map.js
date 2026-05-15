@@ -14,9 +14,10 @@ const map = new mapboxgl.Map({
 
 const svg = d3.select('#map').append('svg');
 
-// Performance optimization buckets
 let departuresByMinute = Array.from({ length: 1440 }, () => []);
 let arrivalsByMinute = Array.from({ length: 1440 }, () => []);
+
+let stationFlow = d3.scaleQuantize().domain([0, 1]).range([0, 0.5, 1]);
 
 function getCoords(station) {
   const point = new mapboxgl.LngLat(+station.lon, +station.lat);
@@ -75,51 +76,33 @@ const bikeLaneStyle = {
 };
 
 map.on('load', async () => {
-  // Boston bike lanes
   map.addSource('boston_route', {
     type: 'geojson',
     data: 'https://bostonopendata-boston.opendata.arcgis.com/datasets/boston::existing-bike-network-2022.geojson',
   });
-  map.addLayer({
-    id: 'boston-bike-lanes',
-    type: 'line',
-    source: 'boston_route',
-    paint: bikeLaneStyle,
-  });
+  map.addLayer({ id: 'boston-bike-lanes', type: 'line', source: 'boston_route', paint: bikeLaneStyle });
 
-  // Cambridge bike lanes
   map.addSource('cambridge_route', {
     type: 'geojson',
     data: 'https://raw.githubusercontent.com/cambridgegis/cambridgegis_data/main/Recreation/Bike_Facilities/RECREATION_BikeFacilities.geojson',
   });
-  map.addLayer({
-    id: 'cambridge-bike-lanes',
-    type: 'line',
-    source: 'cambridge_route',
-    paint: bikeLaneStyle,
-  });
+  map.addLayer({ id: 'cambridge-bike-lanes', type: 'line', source: 'cambridge_route', paint: bikeLaneStyle });
 
-  // Fetch station data
   const jsonData = await d3.json('https://dsc106.com/labs/lab07/data/bluebikes-stations.json');
 
-  // Fetch trip data and fill minute buckets
   const trips = await d3.csv(
     'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv',
     (trip) => {
       trip.started_at = new Date(trip.started_at);
       trip.ended_at = new Date(trip.ended_at);
-
-      // Fill buckets for performance optimization
       const startedMinutes = minutesSinceMidnight(trip.started_at);
       const endedMinutes = minutesSinceMidnight(trip.ended_at);
       departuresByMinute[startedMinutes].push(trip);
       arrivalsByMinute[endedMinutes].push(trip);
-
       return trip;
     },
   );
 
-  // Compute station traffic
   let stations = computeStationTraffic(jsonData.data.stations);
 
   const radiusScale = d3
@@ -127,17 +110,13 @@ map.on('load', async () => {
     .domain([0, d3.max(stations, (d) => d.totalTraffic)])
     .range([0, 25]);
 
-  // Draw circles
   const circles = svg
     .selectAll('circle')
     .data(stations, (d) => d.short_name)
     .enter()
     .append('circle')
-    .attr('fill', 'steelblue')
-    .attr('stroke', 'white')
-    .attr('stroke-width', 1)
-    .attr('fill-opacity', 0.6)
     .attr('r', (d) => radiusScale(d.totalTraffic))
+    .style('--departure-ratio', (d) => stationFlow(d.departures / d.totalTraffic))
     .each(function (d) {
       d3.select(this)
         .append('title')
@@ -156,7 +135,6 @@ map.on('load', async () => {
   map.on('resize', updatePositions);
   map.on('moveend', updatePositions);
 
-  // Slider elements
   const timeSlider = document.getElementById('time-slider');
   const selectedTime = document.getElementById('selected-time');
   const anyTimeLabel = document.getElementById('any-time');
@@ -167,7 +145,8 @@ map.on('load', async () => {
     circles
       .data(filteredStations, (d) => d.short_name)
       .join('circle')
-      .attr('r', (d) => radiusScale(d.totalTraffic));
+      .attr('r', (d) => radiusScale(d.totalTraffic))
+      .style('--departure-ratio', (d) => stationFlow(d.departures / d.totalTraffic));
   }
 
   function updateTimeDisplay() {
